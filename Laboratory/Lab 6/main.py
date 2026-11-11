@@ -1,5 +1,6 @@
-import glob, os, sys
-
+import glob
+import os
+import sys
 
 # minimum number of coins, with 2-D DP table
 INF = float("inf")
@@ -18,6 +19,10 @@ MAX_TABLE_CELLS = 20000
 # needed because for large inputs the number of ways is astronomically big (e.g. ~1.17e24)
 # for the 9036/149-coin "extra" case -- backtracking alone would never finish counting them,
 # let alone printing them.
+#
+# (m = number of coins, n = amount)
+# Time:  O(m * n) -- two nested loops, O(1) work per cell
+# Space: O(m * n) -- the (m+1) x (n+1) table
 def cways(amount, coins):
     m = len(coins)
     count = [[0] * (amount + 1) for _ in range(m + 1)]
@@ -32,6 +37,13 @@ def cways(amount, coins):
 
 # list all ways to make change
 # backtrack
+#
+# (m = number of coins, n = amount, c_min = smallest coin, d = n // c_min = max depth)
+# Time:  O(m^d) worst case -- exponential: up to m branches per level, d levels deep.
+#        Copying each found combination costs O(d) more, so at least O(W * d) for W ways.
+#        Dead-end branches (remaining can't be made) are still explored, so it is not
+#        bounded by the number of ways alone.
+# Space: O(d) recursion stack + O(W * d) to store the results
 def ways(amount: int, coins: list[int]) -> list[str]:
     results = []
 
@@ -60,6 +72,10 @@ def ways(amount: int, coins: list[int]) -> list[str]:
     return results
 
 
+# (m = number of coins, n = amount, c_min = smallest coin)
+# Time:  O(m * n) -- filling the table, O(1) per cell.
+#        The backtrack adds only O(m + n / c_min): each step moves up one row or left one coin.
+# Space: O(m * n) -- the (m+1) x (n+1) table
 def minCoin(amount: int, coins: list[int], /) -> tuple[list[list[float]], float, list[int]]:
     m = len(coins)
     dp = [[INF] * (amount + 1) for _ in range(m + 1)]
@@ -89,6 +105,7 @@ def minCoin(amount: int, coins: list[int], /) -> tuple[list[list[float]], float,
     return dp, dp[m][amount], chosen
 
 
+# Time: O(m * n) -- visits every cell once. Space: O(n) for one formatted row at a time.
 def printt(dp: list[list[float]], coins: list[int], amount: int, /) -> None:
     header = "   j:     " + "".join(f"{j:4d}" for j in range(amount + 1))
     print(header)
@@ -98,6 +115,9 @@ def printt(dp: list[list[float]], coins: list[int], amount: int, /) -> None:
         print(f"{label:>9}:{cells}")
 
 
+# Overall: O(m * n) time and space (cways + minCoin + printt), plus the exponential
+# ways() listing, which only runs when there are at most MAX_WAYS_TO_LIST combinations.
+# Reading the input adds O(m log m) for sorting the coins.
 def main(amount: int, coins: list[int], /) -> None:
     print(f"Amount = {amount}")
     print(f"Coins  = {coins}\n")
@@ -123,9 +143,8 @@ def main(amount: int, coins: list[int], /) -> None:
 
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "example"
-    files = sorted(glob.glob(os.path.join(target, "*.txt"))) if os.path.isdir(target) else [target]
 
-    for path in files:
+    for path in sorted(glob.glob(os.path.join(target, "*.txt"))) if os.path.isdir(target) else [target]:
         with open(path, 'r') as f:
             lines = [ln for ln in f.read().splitlines() if ln.strip() != ""]
             amount = int(lines[0].strip())
